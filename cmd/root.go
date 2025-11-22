@@ -1,6 +1,5 @@
 /*
 Copyright © 2025 NAME HERE <EMAIL ADDRESS>
-
 */
 package cmd
 
@@ -10,21 +9,26 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
-
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "hsp",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
+	Short: "HTTP Superpowers - Easiest HTTP client in the terminal",
+	Long: `HSP is an interactive HTTP client that makes API testing as easy as Postman, but in your terminal.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
+No need to remember curl syntax - just run 'hsp request' and answer simple prompts!
+
+Features:
+  • Interactive request builder - step-by-step guided flow
+  • Auto-format JSON bodies and set Content-Type headers
+  • Easy header and query parameter management
+  • Request preview before sending
+  • Automatic request history
+  • Pretty-printed JSON responses
+
+Examples:
+  hsp request          - Start interactive request builder
+  hsp get <url>        - Quick GET request
+  hsp post <url>       - Quick POST request`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -47,5 +51,3 @@ func init() {
 	// when this action is called directly.
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
-
-
