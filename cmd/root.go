@@ -7,7 +7,32 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
+
+var aliasMap = map[string]string{
+	"r":  "request",
+	"g":  "get",
+	"p":  "post",
+	"pu": "put",
+	"pa": "patch",
+	"d":  "delete",
+}
+
+func normalizeAlias(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	if replacement, ok := aliasMap[name]; ok {
+		return pflag.NormalizedName(replacement)
+	}
+	return pflag.NormalizedName(name)
+}
+
+func aliasCmd(use string, target *cobra.Command) *cobra.Command {
+	return &cobra.Command{
+		Use:   use,
+		Short: "Alias for " + target.Name(),
+		Run:   target.Run,
+	}
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -41,6 +66,10 @@ func Execute() {
 }
 
 func init() {
+	rootCmd.SetGlobalNormalizationFunc(normalizeAlias)
 	rootCmd.AddCommand(varCmd)
 	rootCmd.AddCommand(envCmd)
+	rootCmd.AddCommand(aliasCmd("r", requestCmd))
+	rootCmd.AddCommand(aliasCmd("g", getCmd))
+	rootCmd.AddCommand(aliasCmd("p", postCmd))
 }
