@@ -1,50 +1,67 @@
-# HSP - HTTP Superpowers 🚀
+# HSP - HTTP Superpowers
 
-**The easiest HTTP client in the terminal - Postman-like experience without the complexity**
+**The ultimate HTTP client in the terminal** - Postman-like experience with variables, profiles, test suites, and beautiful TUI output.
 
-HSP is an interactive CLI tool that makes HTTP requests as simple as answering prompts. No need to remember curl flags or compose complex commands!
+---
 
-## ✨ Why HSP?
+## What is HSP?
+
+HSP is an interactive CLI HTTP client that makes API testing incredibly fast. No complex flags, no GUI overhead - just run commands and see beautiful output.
+
+```
+$ hsp request
++------------------------------------------------------------------------------+
+|  REQUEST                                                           [POST]  |
++------------------------------------------------------------------------------+
+|  URL: https://api.example.com/users                                       |
+|  Headers: Authorization: Bearer ***                                      |
++------------------------------------------------------------------------------+
+|  BODY (Payload)                                                       |
+|  +--------------------------------------------------------------------------+
+|  | name     : "John Doe"                                                |
+|  | email    : "john@example.com"                                       |
+|  +--------------------------------------------------------------------------+
++------------------------------------------------------------------------------+
+|  Time: 143ms                              [201 Created]                    |
++------------------------------------------------------------------------------+
+|  RESPONSE                                                            |
+|  +--------------------------------------------------------------------------+
+|  | id       : 123                                                    |
+|  | name     : "John Doe"                                             |
+|  | email    : "john@example.com"                                     |
+|  +--------------------------------------------------------------------------+
++------------------------------------------------------------------------------+
+```
+
+---
+
+## Quick Comparison
 
 ### vs. cURL
 ```bash
-# cURL - Need to remember flags and syntax
+# cURL - Remember all the flags
 curl -X POST https://api.example.com/users \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer token123" \
   -d '{"name": "John", "email": "john@example.com"}'
 
-# HSP - Just answer prompts
-hsp request
-# ? URL: https://api.example.com/users
-# ? Method: (GET, POST, PUT, PATCH, DELETE) POST
-# ? Add headers? y
-#   Header name: Authorization
-#   Value: Bearer token123
-#   Add another? y
-#   Header name: Custom-Header
-#   Value: custom-value
-# ... (clear preview and confirmation)
+# HSP - Just run and answer prompts
+$ hsp request
+? URL: https://api.example.com/users
+? Method: POST
+...
 ```
+**Result:** Same API call, but zero memorization needed.
 
 ### vs. Postman
-- **No UI overhead** - pure terminal speed
-- **Lightweight** - single binary, ~15MB
-- **Scriptable** - pipe input for automation
-- **History** - all requests saved automatically
-- **Keyboard-driven** - never reach for mouse
+- **500MB+ download** vs **15MB binary**
+- **Mouse required** vs **100% keyboard**
+- **Slow launch** vs **instant start**
+- **No history by default** vs **auto-saved**
 
-## 🎯 Features
+---
 
-- 🎨 **Interactive Request Builder** - Step-by-step guided workflow
-- 🔄 **Auto-formatting** - JSON body formatting & Content-Type auto-detection
-- 💾 **Request History** - All requests stored in `~/.hsp/history/`
-- 📋 **Request Preview** - See exactly what will be sent before confirming
-- 🌈 **Colored Output** - Beautiful response display with syntax highlighting
-- ⚡ **Quick Commands** - `hsp get <url>`, `hsp post <url>` for fast requests
-- ✅ **Input Validation** - Prevents malformed URLs and invalid JSON
-
-## 📦 Installation
+## Installation
 
 ### From Source
 ```bash
@@ -59,302 +76,374 @@ sudo mv hsp /usr/local/bin/
 brew install hitesh103/hsp/hsp
 ```
 
-### Verify Installation
+### Verify
 ```bash
-hsp --version
 hsp --help
 ```
 
-## 🚀 Quick Start
+---
 
-### Interactive Mode (Recommended)
-```bash
-hsp request
+## All Commands
+
 ```
-
-You'll be guided through:
-1. **URL** - Where to send the request
-2. **Method** - GET, POST, PUT, PATCH, DELETE, HEAD, OPTIONS
-3. **Headers** - Add custom headers easily
-4. **Query Parameters** - Key-value pairs appended to URL
-5. **Body** (if POST/PUT/PATCH) - JSON, form data, or raw text
-6. **Pretty-print** - Format response nicely
-7. **Preview** - Review before sending
-8. **Confirmation** - Send or cancel
-
-### Quick GET
-```bash
-hsp get https://api.github.com/users/golang
+Available Commands:
+  completion   Generate autocompletion script
+  env          Manage environments (dev/staging/prod)
+  get, g       Send GET request
+  post, p      Send POST request
+  profile      Manage request profiles
+  request, r   Interactive request builder
+  test         Run API test suites
+  var          Manage variables
 ```
-
-### Quick POST
-```bash
-hsp post https://api.example.com/data --json '{"key": "value"}'
-```
-
-## 📖 Usage Examples
-
-### Example 1: GET Request with Headers
-```bash
-$ hsp request
-? URL: https://api.github.com/repos/golang/go/issues
-? Method: GET
-? Add headers? (y/n): y
-  Header name: Authorization
-  Value: token ghp_XXXXXXXXXXXX
-  Add another? (y/n): n
-? Add query parameters? (y/n): y
-  Parameter name: state
-  Value: open
-  Add another? (y/n): y
-  Parameter name: labels
-  Value: bug
-  Add another? (y/n): n
-? Pretty response? (y/n, default: y): y
-
-PREVIEW
-======================================================================
-GET https://api.github.com/repos/golang/go/issues?state=open&labels=bug
-Headers:
-  Accept: application/json
-  Authorization: token ghp_XXXXXXXXXXXX
-======================================================================
-
-? Send request? (y/n): y
-
-✔ 200 OK (143ms)
-
-Response Headers:
-  Content-Type: application/json; charset=utf-8
-  X-RateLimit-Limit: 60
-  X-RateLimit-Remaining: 59
-
-Response Body:
-[
-  {
-    "id": 12345,
-    "title": "Example issue",
-    "state": "open",
-    ...
-  }
-]
-✓ Request saved to history: /Users/dev/.hsp/history/GET_2025-11-22_12-49-07.json
-```
-
-### Example 2: POST with JSON Body
-```bash
-$ hsp request
-? URL: https://jsonplaceholder.typicode.com/posts
-? Method: POST
-? Add headers? (y/n): n
-? Add query parameters? (y/n): n
-? Add request body? (y/n): y
-  Body format:
-  1) JSON
-  2) Form data
-  3) Raw text
-  Choose (1-3): 1
-  Enter JSON body (press Enter twice when done):
-  {
-    "title": "HSP is awesome",
-    "body": "Making HTTP requests easy",
-    "userId": 1
-  }
-  
-  ✓ JSON body set
-? Pretty response? (y/n, default: y): y
-
-PREVIEW
-======================================================================
-POST https://jsonplaceholder.typicode.com/posts
-Headers:
-  Accept: application/json
-  Content-Type: application/json
-
-Body:
-  {
-    "body": "Making HTTP requests easy",
-    "title": "HSP is awesome",
-    "userId": 1
-  }
-======================================================================
-
-? Send request? (y/n): y
-
-✔ 201 Created (286ms)
-
-Response Headers:
-  Content-Type: application/json; charset=utf-8
-  Location: https://jsonplaceholder.typicode.com/posts/101
-
-Response Body:
-{
-  "body": "Making HTTP requests easy",
-  "id": 101,
-  "title": "HSP is awesome",
-  "userId": 1
-}
-✓ Request saved to history: /Users/dev/.hsp/history/POST_2025-11-22_12-49-49.json
-```
-
-### Example 3: PUT Request with Form Data
-```bash
-$ hsp request
-? URL: https://api.example.com/users/123
-? Method: PUT
-? Add headers? (y/n): y
-  Header name: Authorization
-  Value: Bearer eyJhbGc...
-  Add another? (y/n): n
-? Add query parameters? (y/n): n
-? Add request body? (y/n): y
-  Body format:
-  1) JSON
-  2) Form data
-  3) Raw text
-  Choose (1-3): 2
-  Form field name: first_name
-  Value: John
-  Add another? (y/n): y
-  Form field name: last_name
-  Value: Doe
-  Add another? (y/n): n
-  ✓ Form body set
-? Pretty response? (y/n, default: y): y
-
-PREVIEW
-======================================================================
-PUT https://api.example.com/users/123
-Headers:
-  Accept: application/json
-  Authorization: Bearer eyJhbGc...
-  Content-Type: application/x-www-form-urlencoded
-
-Body:
-  first_name=John&last_name=Doe
-======================================================================
-
-? Send request? (y/n): y
-
-✔ 200 OK (95ms)
-```
-
-## 📚 Request History
-
-All requests are automatically saved to `~/.hsp/history/` with timestamps:
-
-```bash
-ls -la ~/.hsp/history/
-# GET_2025-11-22_12-49-07.json
-# POST_2025-11-22_12-49-49.json
-# PUT_2025-11-22_13-10-15.json
-
-cat ~/.hsp/history/POST_2025-11-22_12-49-49.json
-# {
-#   "timestamp": "2025-11-22_12-49-49",
-#   "method": "POST",
-#   "url": "https://jsonplaceholder.typicode.com/posts",
-#   "headers": {
-#     "Accept": "application/json",
-#     "Content-Type": "application/json"
-#   },
-#   "params": {},
-#   "body": "{\"title\": \"HSP Test Post\", ...}"
-# }
-```
-
-## 🎨 Features in Detail
-
-### Auto-Header Management
-- **Auto-set Content-Type** for JSON bodies
-- **Auto-set Accept** header to `application/json`
-- **Easy multiple headers** - add as many as needed
-- **Common header templates** (Authorization, X-API-Key, etc.)
-
-### JSON Body Auto-Formatting
-- **Validates JSON** before sending
-- **Pretty-prints** in preview
-- **Auto-detects** objects vs arrays
-- **Handles** Unicode and special characters
-
-### Query Parameters
-- **Key-value pairs** with interactive prompts
-- **URL encoding** handled automatically
-- **Multiple parameters** supported
-- **Easy to modify** before sending
-
-### Response Display
-- **Color-coded status** (green=2xx, red=4xx/5xx)
-- **Response headers** displayed
-- **JSON pretty-printing** with colors
-- **Timing information** for performance analysis
-
-## ⌨️ Keyboard Shortcuts
-
-| Command | Description |
-|---------|-------------|
-| `Ctrl+C` | Cancel current operation |
-| `n` | Skip optional steps |
-| `y` | Confirm and proceed |
-| `done` | Finish adding headers/params |
-
-## 🔧 Configuration
-
-### Custom History Location
-Set environment variable:
-```bash
-export HSP_HISTORY_DIR="$HOME/Documents/api-requests"
-```
-
-### Default Pretty-Print
-```bash
-export HSP_PRETTY=true
-```
-
-### Timeout
-```bash
-export HSP_TIMEOUT=30s
-```
-
-## 📊 Supported HTTP Methods
-
-- ✅ GET
-- ✅ POST
-- ✅ PUT
-- ✅ PATCH
-- ✅ DELETE
-- ✅ HEAD
-- ✅ OPTIONS
-
-## 🐛 Troubleshooting
-
-### "URL required" error
-Make sure you enter a URL starting with `http://` or `https://`
-
-### "Invalid JSON" error
-Check your JSON syntax. HSP validates before sending.
-
-### Connection timeout
-- Check your internet connection
-- Increase timeout: `export HSP_TIMEOUT=60s`
-- Verify the URL is correct
-
-### Request not saved
-History is auto-saved to `~/.hsp/history/`. Check permissions with:
-```bash
-ls -la ~/.hsp/history/
-```
-
-## 🤝 Contributing
-
-Found a bug or have a feature request? Open an issue!
-
-## 📄 License
-
-MIT License - See LICENSE file
 
 ---
 
-**Made with ❤️ for developers who love the terminal**
+## Features
 
-Questions? Create an issue or check documentation at https://github.com/hitesh103/hsp
+### 1. Variables & Environments
+
+Set once, use everywhere with `{{VAR}}` syntax.
+
+```bash
+# Set variables
+$ hsp var set BASE_URL https://api.example.com
+Set BASE_URL = https://api.example.com in environment 'default'
+
+$ hsp var set API_KEY secret123 --env dev
+Set API_KEY = secret123 in environment 'dev'
+
+# Create environments
+$ hsp env create staging
+Created environment 'staging'
+
+$ hsp env staging
+Switched to 'staging'
+
+# List environments
+$ hsp env --list
+* default
+  dev
+  staging
+  prod (current)
+
+# Use in requests
+$ hsp request
+? URL: {{BASE_URL}}/users
+    Resolved: https://api.example.com/users
+```
+
+**Output:**
+```
++------------------------------------------------------------------------------+
+|  REQUEST                                                           [GET]  |
++------------------------------------------------------------------------------+
+|  URL       : {{BASE_URL}}/users                                       |
+|  Resolved  : https://api.example.com/users                           |
++------------------------------------------------------------------------------+
+```
+
+### 2. Session Memory
+
+Never lose your last request.
+
+```bash
+# Last request auto-saved
+$ hsp request --last          # Just re-send last request
+$ hsp request --resume        # Load and modify before sending
+```
+
+**Output (--last):**
+```
++------------------------------------------------------------------------------+
+|  GET https://api.example.com/users                                  |
++------------------------------------------------------------------------------+
+|  Headers: Accept: application/json                               |
++------------------------------------------------------------------------------+
+|  Time: 89ms                                   [200 OK]     |
++------------------------------------------------------------------------------+
+```
+
+### 3. Named Profiles
+
+Save and reuse request templates.
+
+```bash
+# Save current request
+$ hsp profile save github-api
+Saved profile 'github-api'
+
+# List profiles
+$ hsp profile list
+  github-api  - GET to https://api.github.com (updated: 2026-04-27)
+  my-api    - POST to {{BASE_URL}}/users
+
+# Run a profile
+$ hsp profile run github-api
++------------------------------------------------------------------------------+
+|  TEST SUITE: github-api                                     [dev]  |
++------------------------------------------------------------------------------+
+```
+
+### 4. Command Aliases
+
+Shortcuts for power users.
+
+```bash
+hsp r          # = hsp request
+hsp g          # = hsp get
+hsp p          # = hsp post
+hsp d          # = hsp delete
+```
+
+### 5. Test Suites
+
+JSON-based test runner with assertions.
+
+**Example test suite:**
+```json
+{
+  "name": "User API Tests",
+  "tests": [
+    {
+      "name": "Create user",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE_URL}}/users",
+        "body": { "name": "test" }
+      },
+      "assertions": [
+        { "type": "status", "expected": 201 },
+        { "type": "body_contains", "path": "$.name", "value": "test" }
+      ]
+    }
+  ]
+}
+```
+
+**Run tests:**
+```bash
+$ hsp test run user-api.json
++------------------------------------------------------------------------------+
+|  TEST SUITE: User API Tests                                      [dev]  |
++------------------------------------------------------------------------------+
+|  PASS  Create user ....................................... OK   45ms |
+|  PASS  Get user ........................................ OK   12ms |
+|  PASS  Update user .................................... OK   89ms |
+|  FAIL  Delete user ................................. FAIL             |
++------------------------------------------------------------------------------+
+|  FAILURES:                                                            |
+|  [4] Delete user                                                     |
+|    Expected: 200                                                   |
+|    Actual:   500 Internal Server Error                              |
++------------------------------------------------------------------------------+
+|  Summary: 3/4 passed                                         [FAIL]  |
++------------------------------------------------------------------------------+
+```
+
+### 6. Beautiful TUI Output
+
+Warm color scheme with priority highlighting.
+
+```
++------------------------------------------------------------------------------+
+|  REQUEST                                                           [POST]  |
++------------------------------------------------------------------------------+
+|  URL       : https://api.example.com/users                              |
+|  Headers  : Authorization: Bearer ***                               |
+|             Content-Type: application/json                       |
++------------------------------------------------------------------------------+
+|  BODY (Payload)                                                   |
+|  +--------------------------------------------------------------------------+
+|  | name     : "John Doe"        [priority: high]                  |
+|  | email    : "john@example.com" [priority: high]             |
+|  | userId  : 1               [priority: low]                   |
+|  +--------------------------------------------------------------------------+
++------------------------------------------------------------------------------+
+|  Time: 143ms                              [201 Created]               |
++------------------------------------------------------------------------------+
+|  RESPONSE                                                          |
+|  +--------------------------------------------------------------------------+
+|  | id       : 123                 [priority: high]           |
+|  | name     : "John Doe"                                 |
+|  | created_at: "2026-04-27T00:00:00Z" [priority: low]  |
+|  +--------------------------------------------------------------------------+
++------------------------------------------------------------------------------+
+```
+
+### 7. Auto History
+
+Every request saved automatically.
+
+```bash
+$ ls ~/.hsp/history/
+GET_2026-04-27_10-30-00.json
+POST_2026-04-27_10-35-15.json
+```
+
+---
+
+## Usage Examples
+
+### Example 1: Interactive Request
+```bash
+$ hsp request
+
+--- Step 1: URL ---
+? URL: {{BASE_URL}}/users
+    Resolved: https://api.example.com/users
+
+--- Step 2: Method ---
+? Method: (default: GET)
+    1) GET       [retrieve data]
+    2) POST      [create new]
+    3) PUT       [update]
+    4) PATCH     [partial]
+    5) DELETE    [remove]
+Choose (1-7) or type method: POST
+
+--- Step 3: Headers ---
+? Add headers? (y/n): n
+    [Auto-set: Accept: application/json]
+
+--- Step 4: Query Parameters ---
+? Add query parameters? (y/n): n
+
+--- Step 5: Body ---
+? Add request body? (y/n): y
+    Body format:
+    1) JSON
+    2) Form data
+    3) Raw text
+Choose (1-3): 1
+Enter JSON body (press Enter twice when done):
+{
+  "name": "John Doe",
+  "email": "john@example.com"
+}
+    Valid JSON
+    [Auto-set: Content-Type: application/json]
+
+--- Step 6: Preview ---
++------------------------------------------------------------------------------+
+|  PREVIEW                                                            |
++------------------------------------------------------------------------------+
+|  POST https://api.example.com/users                               |
++------------------------------------------------------------------------------+
+|  Headers: Accept: application/json                               |
+|            Content-Type: application/json                        |
++------------------------------------------------------------------------------+
+|  Body: name: "John Doe"                                         |
+|        email: "john@example.com"                               |
++------------------------------------------------------------------------------+
+? Send request? (y/n): y
+
++------------------------------------------------------------------------------+
+|  Time: 286ms                              [201 Created]        |
++------------------------------------------------------------------------------+
+|  RESPONSE                                                          |
+|  +--------------------------------------------------------------------------+
+|  | id        : 101                                             |
+|  | name      : "John Doe"                                      |
+|  | email     : "john@example.com"                             |
+|  +--------------------------------------------------------------------------+
++------------------------------------------------------------------------------+
+Request saved: ~/.hsp/history/POST_2026-04-27_10-40-00.json
+```
+
+### Example 2: Quick GET
+```bash
+$ hsp g https://jsonplaceholder.typicode.com/posts/1
+
+Status: 200 (48ms)
+
+{
+  "body": "quia et suscipit...",
+  "id": 1,
+  "title": "sunt aut facere...",
+  "userId": 1
+}
+```
+
+### Example 3: Variables + Profile
+```bash
+# Set up variables
+$ hsp env create prod
+$ hsp var set BASE_URL https://api.production.com
+$ hsp var set API_KEY prod-secret-token
+
+# Save a profile
+$ hsp profile save prod-api
+Saved profile 'prod-api'
+
+# Run later
+$ hsp profile run prod-api
++------------------------------------------------------------------------------+
+|  GET https://api.production.com/users              |
++------------------------------------------------------------------------------+
+```
+
+---
+
+## Configuration
+
+### Environment Variables
+```bash
+export HSP_HISTORY_DIR="$HOME/Documents/api-requests"
+export HSP_PRETTY=true
+export HSP_TIMEOUT=30s
+export HSP_COLOR=true    # Enable/disable colors
+```
+
+### Config File
+`~/.hsp/config.yaml` stores all variables and environments:
+```yaml
+environments:
+  default:
+    BASE_URL: ""
+    API_KEY: ""
+  dev:
+    BASE_URL: "http://localhost:3000"
+    API_KEY: "dev-token"
+  prod:
+    BASE_URL: "https://api.example.com"
+    API_KEY: "prod-token"
+```
+
+---
+
+## File Locations
+
+| Path | Purpose |
+|------|---------|
+| `~/.hsp/config.yaml` | Variables & environments |
+| `~/.hsp/history/` | Request history |
+| `~/.hsp/profiles/` | Saved profiles |
+| `~/.hsp/suites/` | Test suites |
+| `~/.hsp/.last_request.json` | Session memory |
+
+---
+
+## Troubleshooting
+
+### "URL must start with http:// or https://"
+Check your URL: needs `http://` or `https://` prefix.
+
+### "Invalid JSON"
+Your JSON body has a syntax error. Check brackets and quotes.
+
+### "Variable not found: {{VAR}}"
+Set the variable first: `hsp var set VAR_NAME value`
+
+### "Environment not found"
+Create it: `hsp env create myenv`
+
+---
+
+## License
+
+MIT License
+
+---
+
+**Built for developers who love the terminal.**
