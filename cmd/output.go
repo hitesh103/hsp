@@ -233,6 +233,10 @@ func RenderRequestPreview(req *RequestBuilder) string {
 		"+" + strings.Repeat("-", width-2) + "+"
 }
 
+func (rb *RequestBuilder) RenderRequestPreview() string {
+	return RenderRequestPreview(rb)
+}
+
 func RenderResponse(statusCode int, statusText string, duration time.Duration, headers http.Header, body []byte) string {
 	width := 80
 
@@ -268,6 +272,10 @@ func RenderResponse(statusCode int, statusText string, duration time.Duration, h
 
 	lines = append(lines, "+"+strings.Repeat("-", width-2)+"+")
 	return strings.Join(lines, "\n")
+}
+
+func (rb *RequestBuilder) RenderResponse(statusCode int, statusText string, duration time.Duration, headers http.Header, body []byte) string {
+	return RenderResponse(statusCode, statusText, duration, headers, body)
 }
 
 func formatResponseBodyBox(body []byte, width int) string {

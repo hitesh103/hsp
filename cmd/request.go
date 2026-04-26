@@ -403,24 +403,7 @@ func (rb *RequestBuilder) PromptPrettyPrint(reader *bufio.Reader) {
 }
 
 func (rb *RequestBuilder) ShowPreview() {
-	fmt.Println("\n" + strings.Repeat("=", 70))
-	fmt.Println("PREVIEW")
-	fmt.Println(strings.Repeat("=", 70))
-
-	// Build full URL with query params
-	fullURL := rb.URL
-	if len(rb.QueryParams) > 0 {
-		params := url.Values{}
-		for k, v := range rb.QueryParams {
-			params.Add(k, v)
-		}
-		fullURL = rb.URL + "?" + params.Encode()
-	}
-
-	// Method and URL
-	methodColor := color.New(color.FgCyan, color.Bold)
-	methodColor.Printf("%s ", rb.Method)
-	fmt.Println(fullURL)
+	fmt.Println("\n" + rb.RenderRequestPreview())
 
 	// Headers
 	if len(rb.Headers) > 0 {
@@ -449,7 +432,6 @@ func (rb *RequestBuilder) ConfirmSend(reader *bufio.Reader) bool {
 }
 
 func (rb *RequestBuilder) SendRequest() {
-	// Build full URL with query params
 	fullURL := rb.URL
 	if len(rb.QueryParams) > 0 {
 		params := url.Values{}
@@ -459,7 +441,6 @@ func (rb *RequestBuilder) SendRequest() {
 		fullURL = rb.URL + "?" + params.Encode()
 	}
 
-	// Create request
 	var req *http.Request
 	var err error
 
@@ -474,12 +455,10 @@ func (rb *RequestBuilder) SendRequest() {
 		return
 	}
 
-	// Add headers
 	for key, value := range rb.Headers {
 		req.Header.Set(key, value)
 	}
 
-	// Send request
 	client := &http.Client{Timeout: 30 * time.Second}
 	start := time.Now()
 
@@ -492,41 +471,11 @@ func (rb *RequestBuilder) SendRequest() {
 
 	duration := time.Since(start)
 
-	// Read response
 	body, _ := io.ReadAll(res.Body)
 
-	// Print status
 	fmt.Println()
-	statusColor := color.New(color.FgGreen, color.Bold)
-	if res.StatusCode >= 400 {
-		statusColor = color.New(color.FgRed, color.Bold)
-	}
+	fmt.Println(rb.RenderResponse(res.StatusCode, rb.GetStatusMessage(res.StatusCode), duration, res.Header, body))
 
-	statusMsg := rb.GetStatusMessage(res.StatusCode)
-	statusColor.Printf("✔ %d %s (%s)\n\n", res.StatusCode, statusMsg, duration)
-
-	// Print response headers
-	fmt.Println(color.BlueString("Response Headers:"))
-	for key, values := range res.Header {
-		for _, value := range values {
-			fmt.Printf("  %s: %s\n", color.CyanString(key), value)
-		}
-	}
-
-	// Print body
-	fmt.Println("\n" + color.BlueString("Response Body:"))
-	if rb.PrettyOutput {
-		formatted, err := prettyjson.Format(body)
-		if err == nil {
-			fmt.Println(string(formatted))
-		} else {
-			fmt.Println(string(body))
-		}
-	} else {
-		fmt.Println(string(body))
-	}
-
-	// Save to history
 	rb.SaveToHistory()
 }
 
