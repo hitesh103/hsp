@@ -126,20 +126,65 @@ Profile stored in `~/.hsp/profiles/my-api.json`:
 
 ### Color Palette (Warm Scheme)
 
-| Component     | Color              | Notes                                  |
-|--------------|--------------------|----------------------------------------|
-| Headers (important) | Bright Yellow (FgHiYellow)  | Most visible, light        |
-| Headers (less)     | Dark Yellow (FgYellow)    | Standard yellow              |
-| Body (important)   | Light Magenta (FgMagenta)  | Key fields, light          |
-| Body (less)        | Deep Magenta (FgHiMagenta) | Less important, rich      |
-| Response (important)| Bright Cyan (FgHiCyan)    | Key response fields        |
-| Response (less)     | Dark Cyan (FgCyan)        | Standard cyan              |
-| Error/4xx/5xx      | Bright Red (FgRed)         | Errors, critical          |
-| Warning/3xx         | Bright Yellow (FgYellow)   | Redirects, warnings       |
-| Success/2xx         | Bright Green (FgGreen)      | Success, positive          |
-| Section labels      | Bold White (FgWhite+Bold)   | Headers like "REQUEST"    |
-| Metadata           | Dim Gray (FgBlack)         | Timestamps, hints        |
-| Borders            | Cyan (FgCyan)              | ASCII box borders          |
+Every output element has a defined color. Colors use `fatih/color` package attributes.
+
+| Element | Color | Hex / ANSI | Usage |
+|---------|-------|------------|-------|
+| **Box Borders** | Cyan | `color.FgCyan` | All ASCII box frame lines (`.`, `-`, `|`, `+`) |
+| **Section Title** | Bold White | `color.FgWhite + color.Bold` | "REQUEST", "PREVIEW", "RESPONSE", "BODY", "HEADERS" labels |
+| **HTTP Method** | Bold Cyan | `color.FgCyan + color.Bold` | GET, POST, PUT, PATCH, DELETE badges |
+| **Status 2xx** | Bold Green | `color.FgGreen + color.Bold` | 200, 201, 202, 204 |
+| **Status 3xx** | Bold Yellow | `color.FgYellow + color.Bold` | 301, 302, 304 |
+| **Status 4xx** | Bold Red | `color.FgRed + color.Bold` | 400, 401, 403, 404, 422 |
+| **Status 5xx** | Bold Magenta | `color.FgMagenta + color.Bold` | 500, 502, 503, 504 |
+| **Status Text** | Same as status code | | "OK", "Created", "Bad Request", etc. |
+| **Error / FAIL** | Bold Red | `color.FgRed + color.Bold` | Error messages, `[FAIL]` label |
+| **Warning** | Bright Yellow | `color.FgYellow` | Missing variable warnings, deprecation notices |
+| **Success / PASS** | Bold Green | `color.FgGreen + color.Bold` | `[PASS]`, success checkmarks |
+| **URL** | Bright Cyan | `color.FgCyan` | Full resolved URL in output |
+| **URL (unresolved)** | Dim Yellow | `color.FgYellow + color.Dim` | `{{BASE_URL}}` with unresolved variable hint |
+| **Header Key (important)** | Bright Yellow | `color.FgYellow + color.Bold` | Auth, Content-Type, Accept keys |
+| **Header Key (standard)** | Dark Yellow | `color.FgYellow` | Standard header names |
+| **Header Value (sensitive)** | Dim White | `color.FgWhite + color.Dim` | Token values masked as `***` |
+| **Header Value (standard)** | White | `color.FgWhite` | Non-sensitive header values |
+| **Query Param Key** | Yellow | `color.FgYellow` | Parameter names |
+| **Query Param Value** | White | `color.FgWhite` | Parameter values |
+| **Priority Badge [high]** | Bright Green | `color.FgGreen` | `[priority: high]` label |
+| **Priority Badge [low]** | Dim White | `color.FgWhite + color.Dim` | `[priority: low]` label |
+| **Body Key (important)** | Bright Magenta | `color.FgMagenta + color.Bold` | name, email, token, etc. |
+| **Body Key (standard)** | Magenta | `color.FgMagenta` | Standard body field names |
+| **Body Value (string)** | White | `color.FgWhite` | String values `"..."` |
+| **Body Value (number)** | Cyan | `color.FgCyan` | Numeric values |
+| **Body Value (boolean)** | Yellow | `color.FgYellow` | true / false |
+| **Body Value (null)** | Dim White | `color.FgWhite + color.Dim` | null |
+| **Response Key (important)** | Bright Cyan | `color.FgCyan + color.Bold` | id, name, email, etc. |
+| **Response Key (standard)** | Cyan | `color.FgCyan` | Standard response field names |
+| **Response Value (string)** | White | `color.FgWhite` | String values |
+| **Response Value (number)** | Bright Green | `color.FgGreen` | Numeric values |
+| **Response Value (boolean)** | Yellow | `color.FgYellow` | true / false |
+| **Metadata / Timestamps** | Dim Gray | `color.FgBlack` | "Time:", "Saved:", timestamps, hints |
+| **Interactive Prompt ?** | Bold White | `color.FgWhite + color.Bold` | `? URL:`, `? Method:` prompts |
+| **Interactive Input** | Bright White | `color.FgHiWhite` | User-typed input display |
+| **Inline Variable `{{VAR}}`** | Bright Yellow | `color.FgYellow + color.Bold + color.Underline` | Variable tokens in prompts and preview |
+| **Resolved Variable** | Dim White | `color.FgWhite + color.Dim` | `(resolved from config)` hints |
+| **Test Suite Title** | Bold White | `color.FgWhite + color.Bold` | "TEST SUITE: ..." |
+| **Test Name (passing)** | Green | `color.FgGreen` | Test names with OK status |
+| **Test Name (failing)** | Red | `color.FgRed` | Test names with FAIL status |
+| **Test Name (skipped)** | Dim White | `color.FgWhite + color.Dim` | Test names with SKIP status |
+| **Test Progress dots** | Dim Gray | `color.FgBlack` | `............` progress |
+| **Command Name** | Cyan | `color.FgCyan` | `hsp`, `request`, `get`, etc. in help |
+| **Command Description** | White | `color.FgWhite` | Help text descriptions |
+| **Suggestion / Hint** | Dim Cyan | `color.FgCyan + color.Dim` | Default values, inline suggestions |
+| **Masked Secret** | Dim White | `color.FgWhite + color.Dim` | `***`, `eyJ...`, etc. |
+
+### Environment Color Coding
+
+| Environment | Color | Usage |
+|------------|-------|-------|
+| `default` | Dim White | Default environment, no special color |
+| `dev` | Green | Development environment label |
+| `staging` | Yellow | Staging environment label |
+| `prod` | Red + Bold | Production environment label (warning color) |
 
 ### Priority Shading Logic
 
@@ -149,105 +194,109 @@ Profile stored in `~/.hsp/profiles/my-api.json`:
 
 ### TUI Panel Output
 
-Pure ASCII box drawing characters for maximum compatibility.
+Pure ASCII box drawing characters for maximum compatibility. Font weights create visual hierarchy.
 
 ```
-.------------------------------------------------------------------------------.
-|  REQUEST                                                       [POST]        |
-+------------------------------------------------------------------------------+
-|  URL       : https://{{BASE_URL}}/users                                       |
-|  Resolved  : https://api.example.com/users                                   |
-+------------------------------------------------------------------------------+
-|  Headers   : Authorization: Bearer ***                                        |
-|             Content-Type: application/json                                     |
-|             Accept: application/json                                          |
-+------------------------------------------------------------------------------+
-|  Params    : page=1 | limit=20                                               |
-+------------------------------------------------------------------------------+
-|  BODY                                                                      |
-|  +--------------------------------------------------------------------------+
-|  | name      : "John Doe"           [priority: high]                           |
-|  | email     : "john@example.com"   [priority: high]                           |
-|  | userId    : 1                 [priority: low]                             |
-|  +--------------------------------------------------------------------------+
-+------------------------------------------------------------------------------+
-|  Time: 143ms                              [201 Created]                        |
-+------------------------------------------------------------------------------+
-|  RESPONSE                                                                   |
-|  +--------------------------------------------------------------------------+
-|  | id        : 123                              [priority: high]              |
-|  | name      : "John Doe"                        [priority: high]              |
-|  | email     : "john@example.com"                  [priority: high]              |
-|  | created_at: "2026-04-26T12:00:00Z"           [priority: low]               |
-|  +--------------------------------------------------------------------------+
-+------------------------------------------------------------------------------+
-|  [PASS] Request saved: ~/.hsp/history/POST_2026-04-26_12-00-00.json           |
-'------------------------------------------------------------------------------'
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]
+[white bold]|  REQUEST                                                           [cyan bold]POST[cyan bold]        |
+[cyan bold]|[cyan bold]  [dim]Time: 143ms                                                                |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[cyan bold]|[cyan bold]  URL       : [cyan]https://{{BASE_URL}}/users[yellow]   (unresolved: {{BASE_URL}})[yellow]                    |
+[cyan bold]|[cyan bold]  Resolved  : [cyan underline]https://api.example.com/users[cyan underline]                                               |
+[dim]|[dim]             [dim](resolved from config)[dim]                                                    |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[cyan bold]|[cyan bold]  Headers   : [yellow bold]Authorization[yellow bold]: [white dim]Bearer ***[white dim]                                           |
+[cyan bold]|[cyan bold]             [yellow bold]Content-Type[yellow bold]: [white]application/json[white]                                             |
+[cyan bold]|[cyan bold]             [yellow bold]Accept[yellow bold]: [white]application/json[white]                                                   |
+[cyan bold]|[cyan bold]  Params    : [yellow bold]page[yellow bold]=[cyan]1[cyan] | [yellow bold]limit[yellow bold]=[cyan]20[cyan]                                                      |
+[cyan bold]|[cyan bold]  Env       : [green]dev[green]                                                                    |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[white bold]|  BODY (Payload)                                                                   |
+[cyan bold]|[cyan bold]  +--------------------------------------------------------------------------+ |
+[cyan bold]|[cyan bold]  | [magenta bold]name      [white]: [white]"John Doe"[white]              [green][priority: high][green]    |
+[cyan bold]|[cyan bold]  | [magenta bold]email     [white]: [white]"john@example.com"[white]  [green][priority: high][green]  |
+[cyan bold]|[cyan bold]  | [magenta]userId    [white]: [cyan bold]1[cyan bold]                [dim][priority: low][dim]       |
+[cyan bold]|[cyan bold]  +--------------------------------------------------------------------------+ |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[cyan bold]|[cyan bold]  [green bold]201 Created[green bold]                                                                  |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[white bold]|  RESPONSE                                                                          |
+[cyan bold]|[cyan bold]  +--------------------------------------------------------------------------+ |
+[cyan bold]|[cyan bold]  | [cyan bold]id        [white]: [green bold]123[green bold]                   [green][priority: high][green]  |
+[cyan bold]|[cyan bold]  | [cyan bold]name      [white]: [white]"John Doe"[white]             [green][priority: high][green]  |
+[cyan bold]|[cyan bold]  | [cyan bold]email     [white]: [white]"john@example.com"[white]       [green][priority: high][green] |
+[cyan bold]|[cyan bold]  | [cyan bold]created_at[white]: [dim]"2026-04-26T12:00:00Z"[dim]      [dim][priority: low][dim]   |
+[cyan bold]|[cyan bold]  +--------------------------------------------------------------------------+ |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[cyan bold]|[cyan bold]  [green]Request saved[green]: ~/.hsp/history/POST_2026-04-26_12-00-00.json                          |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]
 ```
 
 ### Interactive TUI View (hsp request)
 
-Step-by-step prompts with clean ASCII section separators between each step.
+Step-by-step prompts with clean ASCII section separators between each step, all prompt text and input in defined colors with proper font weight hierarchy.
 
 ```
---- Step 1: URL ---
-? URL: https://{{BASE_URL}}/users
-    Resolved: https://api.example.com/users
-    (resolved from config)
+[yellow bold]---[yellow bold] [yellow]Step 1: URL[yellow] [yellow bold]---[yellow bold]
+[white bold]? URL: [bright-white]https://{{BASE_URL}}/users[bright-white]
+[dim]    Resolved: [cyan underline]https://api.example.com/users[cyan underline]
+[dim]    (resolved from config)
 
---- Step 2: Method ---
-? Method: (default: GET)
-    1) GET       [retrieve data]
-    2) POST      [create new resource]
-    3) PUT       [update entire resource]
-    4) PATCH     [partial update]
-    5) DELETE    [remove resource]
-    6) HEAD      [like GET, no body]
-    7) OPTIONS   [allowed methods]
-Choose (1-7) or type method: 2
+[yellow bold]---[yellow bold] [yellow]Step 2: Method[yellow] [yellow bold]---[yellow bold]
+[white bold]? Method: [dim](default: GET)[dim]
+[white]    1) [cyan bold]GET[cyan bold]       [dim][retrieve data][dim]
+[white]    2) [cyan bold]POST[cyan bold]      [dim][create new resource][dim]
+[white]    3) [cyan bold]PUT[cyan bold]       [dim][update entire resource][dim]
+[white]    4) [cyan bold]PATCH[cyan bold]     [dim][partial update][dim]
+[white]    5) [cyan bold]DELETE[cyan bold]    [dim][remove resource][dim]
+[white]    6) [cyan bold]HEAD[cyan bold]      [dim][like GET, no body][dim]
+[white]    7) [cyan bold]OPTIONS[cyan bold]   [dim][allowed methods][dim]
+[white bold]Choose (1-7) or type method: [bright-white]2[bright-white]
 
---- Step 3: Headers ---
-? Add headers? (y/n): n
-    [Auto-set: Accept: application/json]
+[green bold]    Method: POST[green bold]
 
---- Step 4: Query Parameters ---
-? Add query parameters? (y/n): n
+[yellow bold]---[yellow bold] [yellow]Step 3: Headers[yellow] [yellow bold]---[yellow bold]
+[white bold]? Add headers? (y/n): [bright-white]n[bright-white]
+[dim]    [Auto-set: Accept: application/json][dim]
 
---- Step 5: Body ---
-? Add request body? (y/n): y
-    Body format:
-    1) JSON
-    2) Form data
-    3) Raw text
-Choose (1-3): 1
-Enter JSON body (press Enter twice when done):
-{
-  "name": "{{TEST_USER}}",
-  "email": "test@example.com"
-}
-    Valid JSON
-    [Auto-set: Content-Type: application/json]
+[yellow bold]---[yellow bold] [yellow]Step 4: Query Parameters[yellow] [yellow bold]---[yellow bold]
+[white bold]? Add query parameters? (y/n): [bright-white]n[bright-white]
 
---- Step 6: Preview ---
+[yellow bold]---[yellow bold] [yellow]Step 5: Body[yellow] [yellow bold]---[yellow bold]
+[white bold]? Add request body? (y/n): [bright-white]y[bright-white]
+[white]    Body format:
+[white]    1) [magenta bold]JSON[magenta bold]
+[white]    2) [yellow]Form data[yellow]
+[white]    3) [dim]Raw text[dim]
+[white bold]Choose (1-3): [bright-white]1[bright-white]
+[white bold]Enter JSON body (press Enter twice when done):[white bold]
+[bright-white]{
+  [yellow bold]"name"[yellow bold]: [yellow]"{{TEST_USER}}"[yellow],
+  [yellow bold]"email"[yellow bold]: [white]"test@example.com"[white]
+}[bright-white]
+[green bold]    Valid JSON[green bold]
+[dim]    [Auto-set: Content-Type: application/json][dim]
+
+[yellow bold]---[yellow bold] [yellow]Step 6: Preview[yellow] [yellow bold]---[yellow bold]
 ```
 
 Request preview with full resolved URL and color-coded sections.
 
 ```
-.------------------------------------------------------------------------------.
-|  PREVIEW                                                                    |
-+------------------------------------------------------------------------------+
-|  POST https://api.example.com/users                                          |
-+------------------------------------------------------------------------------+
-|  Headers   : Authorization: Bearer ***                                       |
-|             Content-Type: application/json                                     |
-|             Accept: application/json                                          |
-+------------------------------------------------------------------------------+
-|  Body      : name: "John Doe" [priority: high]                               |
-|               email: "test@example.com" [priority: high]                      |
-+------------------------------------------------------------------------------+
-|  ? Send request? (y/n): y                                                   |
-'------------------------------------------------------------------------------'
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]
+[white bold]|  PREVIEW                                                                          |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[white bold]|  [cyan bold]POST[cyan bold] [cyan underline]https://api.example.com/users[cyan underline]                                          |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[cyan bold]|[cyan bold]  Headers   : [yellow bold]Authorization[yellow bold]: [white dim]Bearer ***[white dim]                                          |
+[cyan bold]|[cyan bold]             [yellow bold]Content-Type[yellow bold]: [white]application/json[white]                                           |
+[cyan bold]|[cyan bold]             [yellow bold]Accept[yellow bold]: [white]application/json[white]                                               |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[cyan bold]|[cyan bold]  Body      : [magenta bold]name[magenta bold]: [white]"John Doe"[white]              [green][priority: high][green]       |
+[cyan bold]|[cyan bold]               [magenta bold]email[magenta bold]: [white]"test@example.com"[white]    [green][priority: high][green]      |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[white bold]|  ? Send request? (y/n): [bright-white]y[bright-white]                                                         |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]
 ```
 
 ---
@@ -405,41 +454,41 @@ hsp test export suite.json         # Export test suite template
 
 ### Test Output
 
-Clean ASCII output showing pass/fail per test.
+Clean ASCII output showing pass/fail per test with color-coded results.
 
 ```
-.------------------------------------------------------------------------------.
-|  TEST SUITE: User API Test Suite                                    [dev]   |
-+------------------------------------------------------------------------------+
-|  Test: Create user                                       ................ OK |
-|  Test: Get created user                                   .............. OK |
-|  Test: Update user                                         .......... OK |
-|  Test: Delete user                                         .......... OK |
-+------------------------------------------------------------------------------+
-|  Summary: 4/4 passed (143ms total)                              [PASS]      |
-'------------------------------------------------------------------------------'
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]
+[white bold]|  TEST SUITE: User API Test Suite                                        [green]dev[green]  |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[green]  [green bold]PASS[green bold]  [green]Create user                      .......................... OK[green]              |
+[green]  [green bold]PASS[green bold]  [green]Get created user                ........................ OK[green]              |
+[green]  [green bold]PASS[green bold]  [green]Update user                     ......................... OK[green]              |
+[green]  [green bold]PASS[green bold]  [green]Delete user                     ......................... OK[green]              |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[cyan bold]|[cyan bold]  Summary: [green bold]4/4 passed[green bold] (143ms total)                                                  |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]
 ```
 
 ### Failed Test Output
 
 ```
-.------------------------------------------------------------------------------.
-|  TEST SUITE: User API Test Suite                                    [dev]   |
-+------------------------------------------------------------------------------+
-|  Test: Create user                                       ................ OK |
-|  Test: Get created user                                   .............. OK |
-|  Test: Update user                                         .......... FAIL |
-|  Test: Delete user                                         .......... SKIP |
-+------------------------------------------------------------------------------+
-|  FAILURES:                                                                    |
-|  [2] Update user                                                             |
-|    Assertion: status                                                         |
-|    Expected: 200                                                             |
-|    Actual:   500 Internal Server Error                                        |
-|    Body:     {"error": "Database connection failed"}                        |
-+------------------------------------------------------------------------------+
-|  Summary: 1/4 passed (143ms total)                              [FAIL]      |
-'------------------------------------------------------------------------------'
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]
+[white bold]|  TEST SUITE: User API Test Suite                                        [green]dev[green]  |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[green]  [green bold]PASS[green bold]  [green]Create user                      .......................... OK[green]              |
+[green]  [green bold]PASS[green bold]  [green]Get created user                ........................ OK[green]              |
+[red bold]  FAIL[red bold]   [red]Update user                     ......................... FAIL[red]              |
+[dim]          [dim]Delete user                     ........................ SKIP[dim]              |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[yellow bold]  FAILURES:[yellow bold]                                                                           |
+[red bold]  [2] [red bold]Update user[red bold]                                                                          |
+[white]    Assertion: [yellow bold]status[yellow bold]                                                                          |
+[white]    Expected: [green bold]200[green bold]                                                                          |
+[white]    Actual:   [red bold]500[red bold] [red bold]Internal Server Error[red bold]                                                  |
+[white]    Body:     {"error": "Database connection failed"}                                           |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]+
+[cyan bold]|[cyan bold]  Summary: [red bold]1/4 passed[red bold] (143ms total)                          [red bold]FAIL[red bold]                       |
+[cyan bold]+[cyan bold]------------------------------------------------------------------------------[cyan bold]+[cyan bold]
 ```
 
 ---
