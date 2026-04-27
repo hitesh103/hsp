@@ -24,17 +24,40 @@ type RequestBuilder struct {
 	Body         string
 	BodyFormat   string
 	PrettyOutput bool
+	LastRequest *LastRequestJSON
+	IsResume    bool
+	IsLast      bool
 }
 
-var requestCmd = &cobra.Command{
-	Use:   "request",
-	Short: "Build and send HTTP requests interactively (like Postman in terminal)",
-	Long:  "Interactive request builder - easiest way to make HTTP requests",
-	Run: func(cmd *cobra.Command, args []string) {
-		builder := NewRequestBuilder()
-		builder.InteractiveFlow()
-	},
-}
+var (
+	requestCmd = &cobra.Command{
+		Use:   "request",
+		Short: "Build and send HTTP requests interactively (like Postman in terminal)",
+		Long:  "Interactive request builder - easiest way to make HTTP requests",
+		Run: func(cmd *cobra.Command, args []string) {
+			resume, _ := cmd.Flags().GetBool("resume")
+			last, _ := cmd.Flags().GetBool("last")
+
+			builder := NewRequestBuilder()
+			builder.IsResume = resume
+			builder.IsLast = last
+
+			if last {
+				lastReq, err := MustLoadLastRequest()
+				if err != nil {
+					color.Red("✗ %v", err)
+					return
+				}
+				builder.ApplyLastRequest(lastReq)
+				builder.ShowPreview()
+				builder.SendRequest()
+				return
+			}
+
+			builder.InteractiveFlow()
+		},
+	}
+)
 
 func NewRequestBuilder() *RequestBuilder {
 	return &RequestBuilder{
@@ -47,6 +70,8 @@ func NewRequestBuilder() *RequestBuilder {
 
 func (rb *RequestBuilder) InteractiveFlow() {
 	reader := bufio.NewReader(os.Stdin)
+
+	rb.LoadLastRequestAtStart()
 
 	// Step 1: Get URL
 	rb.PromptURL(reader)
@@ -74,6 +99,10 @@ func (rb *RequestBuilder) InteractiveFlow() {
 	// Step 8: Confirm and send
 	if rb.ConfirmSend(reader) {
 		rb.SendRequest()
+
+		if err := SaveLastRequest(rb); err != nil {
+			color.Yellow("⚠ Could not save last request: %v", err)
+		}
 	} else {
 		fmt.Println("\n❌ Request cancelled")
 	}
@@ -81,28 +110,44 @@ func (rb *RequestBuilder) InteractiveFlow() {
 
 func (rb *RequestBuilder) PromptURL(reader *bufio.Reader) {
 	for {
-		fmt.Print("\n? URL: ")
-		input, _ := reader.ReadString('\n')
-		url := strings.TrimSpace(input)
+		var input string
+		if rb.LastRequest != nil {
+			fmt.Printf("\n? URL: (%s) ", rb.LastRequest.URL)
+			input, _ = reader.ReadString('\n')
+			input = strings.TrimSpace(input)
+			if input == "" {
+				rb.URL = rb.LastRequest.URL
+				color.New(color.FgBlack, color.Faint).Println("  Loaded from last request")
+				break
+			}
+		} else {
+			fmt.Print("\n? URL: ")
+			input, _ = reader.ReadString('\n')
+			url := strings.TrimSpace(input)
 
-		if url == "" {
-			color.Red("✗ URL cannot be empty")
-			continue
+			if url == "" {
+				color.Red("✗ URL cannot be empty")
+				continue
+			}
+
+			if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
+				color.Red("✗ URL must start with http:// or https://")
+				continue
+			}
+
+			rb.URL = url
+			break
 		}
-
-		if !strings.HasPrefix(url, "http://") && !strings.HasPrefix(url, "https://") {
-			color.Red("✗ URL must start with http:// or https://")
-			continue
-		}
-
-		rb.URL = url
-		break
 	}
 }
 
 func (rb *RequestBuilder) PromptMethod(reader *bufio.Reader) {
 	methods := []string{"GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"}
-	fmt.Println("\n? Method: (default: GET)")
+	defaultMethod := rb.Method
+	if rb.LastRequest != nil {
+		defaultMethod = rb.LastRequest.Method
+	}
+	fmt.Printf("\n? Method: (default: %s)\n", defaultMethod)
 	for i, m := range methods {
 		fmt.Printf("  %d) %s\n", i+1, m)
 	}
@@ -113,8 +158,13 @@ func (rb *RequestBuilder) PromptMethod(reader *bufio.Reader) {
 		choice := strings.TrimSpace(input)
 
 		if choice == "" {
-			rb.Method = "GET"
-			color.Green("✓ Method: GET")
+			if rb.LastRequest != nil {
+				rb.Method = rb.LastRequest.Method
+				color.New(color.FgBlack, color.Faint).Println("  Loaded from last request")
+			} else {
+				rb.Method = "GET"
+			}
+			color.Green("✓ Method: " + rb.Method)
 			break
 		}
 
@@ -353,24 +403,7 @@ func (rb *RequestBuilder) PromptPrettyPrint(reader *bufio.Reader) {
 }
 
 func (rb *RequestBuilder) ShowPreview() {
-	fmt.Println("\n" + strings.Repeat("=", 70))
-	fmt.Println("PREVIEW")
-	fmt.Println(strings.Repeat("=", 70))
-
-	// Build full URL with query params
-	fullURL := rb.URL
-	if len(rb.QueryParams) > 0 {
-		params := url.Values{}
-		for k, v := range rb.QueryParams {
-			params.Add(k, v)
-		}
-		fullURL = rb.URL + "?" + params.Encode()
-	}
-
-	// Method and URL
-	methodColor := color.New(color.FgCyan, color.Bold)
-	methodColor.Printf("%s ", rb.Method)
-	fmt.Println(fullURL)
+	fmt.Println("\n" + rb.RenderRequestPreview())
 
 	// Headers
 	if len(rb.Headers) > 0 {
@@ -399,7 +432,6 @@ func (rb *RequestBuilder) ConfirmSend(reader *bufio.Reader) bool {
 }
 
 func (rb *RequestBuilder) SendRequest() {
-	// Build full URL with query params
 	fullURL := rb.URL
 	if len(rb.QueryParams) > 0 {
 		params := url.Values{}
@@ -409,7 +441,6 @@ func (rb *RequestBuilder) SendRequest() {
 		fullURL = rb.URL + "?" + params.Encode()
 	}
 
-	// Create request
 	var req *http.Request
 	var err error
 
@@ -424,12 +455,10 @@ func (rb *RequestBuilder) SendRequest() {
 		return
 	}
 
-	// Add headers
 	for key, value := range rb.Headers {
 		req.Header.Set(key, value)
 	}
 
-	// Send request
 	client := &http.Client{Timeout: 30 * time.Second}
 	start := time.Now()
 
@@ -442,41 +471,11 @@ func (rb *RequestBuilder) SendRequest() {
 
 	duration := time.Since(start)
 
-	// Read response
 	body, _ := io.ReadAll(res.Body)
 
-	// Print status
 	fmt.Println()
-	statusColor := color.New(color.FgGreen, color.Bold)
-	if res.StatusCode >= 400 {
-		statusColor = color.New(color.FgRed, color.Bold)
-	}
+	fmt.Println(rb.RenderResponse(res.StatusCode, rb.GetStatusMessage(res.StatusCode), duration, res.Header, body))
 
-	statusMsg := rb.GetStatusMessage(res.StatusCode)
-	statusColor.Printf("✔ %d %s (%s)\n\n", res.StatusCode, statusMsg, duration)
-
-	// Print response headers
-	fmt.Println(color.BlueString("Response Headers:"))
-	for key, values := range res.Header {
-		for _, value := range values {
-			fmt.Printf("  %s: %s\n", color.CyanString(key), value)
-		}
-	}
-
-	// Print body
-	fmt.Println("\n" + color.BlueString("Response Body:"))
-	if rb.PrettyOutput {
-		formatted, err := prettyjson.Format(body)
-		if err == nil {
-			fmt.Println(string(formatted))
-		} else {
-			fmt.Println(string(body))
-		}
-	} else {
-		fmt.Println(string(body))
-	}
-
-	// Save to history
 	rb.SaveToHistory()
 }
 
@@ -538,6 +537,31 @@ func (rb *RequestBuilder) SaveToHistory() {
 	color.Green(fmt.Sprintf("✓ Request saved to history: %s", historyFile))
 }
 
+func (rb *RequestBuilder) LoadLastRequestAtStart() {
+	if !rb.IsResume && !rb.IsLast {
+		return
+	}
+
+	lastReq, err := LoadLastRequest()
+	if err != nil {
+		if os.IsNotExist(err) {
+			color.Yellow("⚠ No previous request found")
+		} else {
+			color.Yellow("⚠ Could not load last request: %v", err)
+		}
+		return
+	}
+
+	rb.LastRequest = lastReq
+
+	if rb.IsResume {
+		rb.ApplyLastRequest(lastReq)
+		color.New(color.FgBlack, color.Faint).Println("  Loaded from last request")
+	}
+}
+
 func init() {
 	rootCmd.AddCommand(requestCmd)
+	requestCmd.Flags().BoolP("resume", "r", false, "Load last request and start from step 1 (modify before sending)")
+	requestCmd.Flags().BoolP("last", "l", false, "Jump straight to confirmation (re-send last request)")
 }

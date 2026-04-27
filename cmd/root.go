@@ -7,7 +7,32 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
+
+var aliasMap = map[string]string{
+	"r":  "request",
+	"g":  "get",
+	"p":  "post",
+	"pu": "put",
+	"pa": "patch",
+	"d":  "delete",
+}
+
+func normalizeAlias(f *pflag.FlagSet, name string) pflag.NormalizedName {
+	if replacement, ok := aliasMap[name]; ok {
+		return pflag.NormalizedName(replacement)
+	}
+	return pflag.NormalizedName(name)
+}
+
+func aliasCmd(use string, target *cobra.Command) *cobra.Command {
+	return &cobra.Command{
+		Use:   use,
+		Short: "Alias for " + target.Name(),
+		Run:   target.Run,
+	}
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -41,13 +66,10 @@ func Execute() {
 }
 
 func init() {
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-
-	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.hsp.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.SetGlobalNormalizationFunc(normalizeAlias)
+	rootCmd.AddCommand(varCmd)
+	rootCmd.AddCommand(envCmd)
+	rootCmd.AddCommand(aliasCmd("r", requestCmd))
+	rootCmd.AddCommand(aliasCmd("g", getCmd))
+	rootCmd.AddCommand(aliasCmd("p", postCmd))
 }

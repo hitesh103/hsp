@@ -1,0 +1,53 @@
+{
+  "name": "Failure Test Suite",
+  "description": "Tests that should fail",
+  "env": "default",
+  "variables": {
+    "BASE_URL": "https://jsonplaceholder.typicode.com"
+  },
+  "tests": [
+    {
+      "name": "Expected to fail - wrong status",
+      "description": "This test expects 201 but gets 200",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/posts/1"
+      },
+      "assertions": [
+        {
+          "type": "status",
+          "expected": "201"
+        }
+      ]
+    },
+    {
+      "name": "Expected to fail - body content",
+      "description": "Body should not contain this text",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/posts/1"
+      },
+      "assertions": [
+        {
+          "type": "body_contains",
+          "path": "$.title",
+          "value": "nonexistent_text_xyz"
+        }
+      ]
+    },
+    {
+      "name": "This will pass",
+      "description": "A passing test",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/posts/1"
+      },
+      "assertions": [
+        {
+          "type": "status",
+          "expected": "200"
+        }
+      ]
+    }
+  ]
+}

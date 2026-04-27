@@ -1,0 +1,105 @@
+{
+  "name": "Sample API Test Suite",
+  "description": "Demonstrates the HSP test runner functionality",
+  "env": "default",
+  "variables": {
+    "BASE_URL": "https://jsonplaceholder.typicode.com"
+  },
+  "tests": [
+    {
+      "name": "Get all posts",
+      "description": "Fetch all posts from the API",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/posts",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "assertions": [
+        {
+          "type": "status",
+          "expected": "200"
+        },
+        {
+          "type": "response_time_ms",
+          "max": 2000
+        }
+      ],
+      "save": [
+        {
+          "var": "post_id",
+          "path": "$.0.id"
+        }
+      ]
+    },
+    {
+      "name": "Get single post",
+      "description": "Fetch a specific post by ID",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/posts/1",
+        "headers": {
+          "Accept": "application/json"
+        }
+      },
+      "assertions": [
+        {
+          "type": "status",
+          "expected": "200"
+        },
+        {
+          "type": "body_contains",
+          "path": "$.title",
+          "value": "sunt"
+        }
+      ]
+    },
+    {
+      "name": "Create post",
+      "description": "Create a new post",
+      "request": {
+        "method": "POST",
+        "url": "{{BASE_URL}}/posts",
+        "headers": {
+          "Content-Type": "application/json"
+        },
+        "body": {
+          "title": "Test Post",
+          "body": "This is a test",
+          "userId": 1
+        }
+      },
+      "assertions": [
+        {
+          "type": "status",
+          "expected": "201"
+        },
+        {
+          "type": "body_contains",
+          "path": "$.title",
+          "value": "Test Post"
+        }
+      ]
+    },
+    {
+      "name": "Test header assertion",
+      "description": "Verify response headers",
+      "request": {
+        "method": "GET",
+        "url": "{{BASE_URL}}/posts/1"
+      },
+      "assertions": [
+        {
+          "type": "status",
+          "expected": "200"
+        },
+        {
+          "type": "header",
+          "name": "Content-Type",
+          "contains": "json"
+        }
+      ]
+    }
+  ]
+}
