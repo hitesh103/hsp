@@ -21,10 +21,29 @@ var (
 			Padding(0, 1)
 
 	inputStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color("#00FF00"))
-)
+	                Foreground(lipgloss.Color("#00FF00"))
 
-type model struct {	urlInput    textinput.Model
+	tabStyle = lipgloss.NewStyle().
+	                Border(lipgloss.NormalBorder(), true, true, false, true).
+	                BorderForeground(lipgloss.Color("#874BFD")).
+	                Padding(0, 2)
+
+	activeTabStyle = tabStyle.Copy().
+	                        Border(lipgloss.NormalBorder(), true, true, true, true).
+	                        BorderForeground(lipgloss.Color("#874BFD")).
+	                        Foreground(lipgloss.Color("#7D56F4")).
+	                        Bold(true)
+
+	tabWindowStyle = lipgloss.NewStyle().
+	                        Border(lipgloss.NormalBorder(), true, true, true, true).
+	                        BorderForeground(lipgloss.Color("#874BFD")).
+	                        Padding(1).
+	                        Width(70).
+	                        Height(10)
+	)
+
+	type model struct {
+	urlInput    textinput.Model
 	method      string
 	headers     map[string]string
 	body        string
@@ -32,9 +51,9 @@ type model struct {	urlInput    textinput.Model
 	err         error
 	quitting    bool
 	sending     bool
-}
+	}
 
-func initialModel() model {
+	func initialModel() model {
 	ti := textinput.New()
 	ti.Placeholder = "https://api.example.com"
 	ti.Focus()
@@ -43,33 +62,38 @@ func initialModel() model {
 	ti.Prompt = " "
 
 	return model{
-		urlInput: ti,
-		method:   "GET",
-		headers:  make(map[string]string),
+	        urlInput:  ti,
+	        method:    "GET",
+	        headers:   make(map[string]string),
+	        activeTab: 0,
 	}
-}
+	}
 
-func (m model) Init() tea.Cmd { return textinput.Blink }
+	func (m model) Init() tea.Cmd { return textinput.Blink }
 
-func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	var cmd tea.Cmd
 
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "esc":
-			m.quitting = true
-			return m, tea.Quit
-		}
+	        switch msg.String() {
+	        case "ctrl+c", "esc":
+	                m.quitting = true
+	                return m, tea.Quit
+	        case "tab":
+	                m.activeTab = (m.activeTab + 1) % 3
+	        case "shift+tab":
+	                m.activeTab = (m.activeTab - 1 + 3) % 3
+	        }
 	}
 
 	m.urlInput, cmd = m.urlInput.Update(msg)
 	return m, cmd
-}
+	}
 
-func (m model) View() string {
+	func (m model) View() string {
 	if m.quitting {
-		return ""
+	        return ""
 	}
 
 	header := titleStyle.Render(" HSP - HTTP Superpowers ")
@@ -79,16 +103,56 @@ func (m model) View() string {
 
 	// Create a styled box for the URL input to make it look like a field
 	urlBox := lipgloss.NewStyle().
-		Border(lipgloss.RoundedBorder()).
-		BorderForeground(lipgloss.Color("#874BFD")).
-		Padding(0, 1).
-		Width(62).
-		Render(url)
+	        Border(lipgloss.RoundedBorder()).
+	        BorderForeground(lipgloss.Color("#874BFD")).
+	        Padding(0, 1).
+	        Width(62).
+	        Render(url)
 
 	headerSection := lipgloss.JoinHorizontal(lipgloss.Center, method, " ", urlBox)
 
-	help := lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render(" ctrl+c: quit • esc: exit ")
+	// Tabs
+	tabs := []string{"Headers", "Query Params", "Body"}
+	var renderedTabs []string
 
-	return lipgloss.JoinVertical(lipgloss.Left, header, headerSection, "", help) + "\n"
-}
+	for i, t := range tabs {
+	        var style lipgloss.Style
+	        isFirst, isLast, isActive := i == 0, i == len(tabs)-1, i == m.activeTab
+
+	        if isActive {
+	                style = activeTabStyle.Copy()
+	        } else {
+	                style = tabStyle.Copy()
+	        }
+
+	        // Adjust borders for seamless look
+	        if isFirst && !isActive {
+	                style = style.Border(lipgloss.NormalBorder(), true, true, false, true)
+	        } else if isLast && !isActive {
+	                style = style.Border(lipgloss.NormalBorder(), true, true, false, true)
+	        }
+
+	        renderedTabs = append(renderedTabs, style.Render(t))
+	}
+
+	row := lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
+
+	// Content
+	var content string
+	switch m.activeTab {
+	case 0:
+	        content = "Headers Section (Placeholder)\n\nKey: Value pairs will go here."
+	case 1:
+	        content = "Params Section (Placeholder)\n\nQuery parameters will go here."
+	case 2:
+	        content = "Body Section (Placeholder)\n\nRequest body editor will go here."
+	}
+
+	tabContent := tabWindowStyle.Render(content)
+
+	help := lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render("\n tab: next tab • shift+tab: prev tab • ctrl+c: quit ")
+
+	return lipgloss.JoinVertical(lipgloss.Left, header, headerSection, "", row, tabContent, help) + "\n"
+	}
+
 
