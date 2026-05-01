@@ -49,104 +49,108 @@ var (	titleStyle = lipgloss.NewStyle().
 	                        Height(10)
 	)
 
-	type model struct {
-	urlInput      textinput.Model
-	curlInput     textinput.Model
-	showCurlInput bool
-	method        string
-	headers       map[string]string
-	body          string
-	activeTab     int
-	err           error
-	quitting      bool
-	sending       bool
+	type TUIModel struct {
+		URLInput      textinput.Model
+		CurlInput     textinput.Model
+		ShowCurlInput bool
+		Method        string
+		Headers       map[string]string
+		Body          string
+		ActiveTab     int
+		Err           error
+		Quitting      bool
+		Sending       bool
 	}
 
-	func initialModel() model {
-	ti := textinput.New()
-	ti.Placeholder = "https://api.example.com"
-	ti.Focus()
-	ti.CharLimit = 156
-	ti.Width = 60
-	ti.Prompt = " "
+	func initialModel() TUIModel {
+		ti := textinput.New()
+		ti.Placeholder = "https://api.example.com"
+		ti.Focus()
+		ti.CharLimit = 156
+		ti.Width = 60
+		ti.Prompt = " "
 
-	ci := textinput.New()
-	ci.Placeholder = "Paste cURL command here..."
-	ci.Width = 60
-	ci.Prompt = " > "
+		ci := textinput.New()
+		ci.Placeholder = "Paste cURL command here..."
+		ci.Width = 60
+		ci.Prompt = " > "
 
-	return model{
-	        urlInput:  ti,
-	        curlInput: ci,
-	        method:    "GET",
-	        headers:   make(map[string]string),
-	        activeTab: 0,
+		return TUIModel{
+			URLInput:  ti,
+			CurlInput: ci,
+			Method:    "GET",
+			Headers:   make(map[string]string),
+			ActiveTab: 0,
+		}
 	}
-	}
 
-	func (m model) Init() tea.Cmd { return textinput.Blink }
+	func (m TUIModel) Init() tea.Cmd { return textinput.Blink }
 
-	func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	        var cmd tea.Cmd
+	func (m TUIModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+		var cmd tea.Cmd
 
-	        switch msg := msg.(type) {
-	        case editorFinishedMsg:
-	                if msg.err != nil {
-	                        m.err = msg.err
-	                        return m, nil
-	                }
-	                m.body = msg.content
-	                return m, nil
+		switch msg := msg.(type) {
+		case editorFinishedMsg:
+			if msg.err != nil {
+				m.Err = msg.err
+				return m, nil
+			}
+			m.Body = msg.content
+			return m, nil
 
-	        case tea.KeyMsg:
-	                if m.showCurlInput {
-	                        switch msg.String() {
-	                        case "esc":
-	                                m.showCurlInput = false
-	                                m.err = nil
-	                                return m, nil
-	                        case "enter":
-	                                config, err := ParseCurl(m.curlInput.Value())
-	                                if err != nil {
-	                                        m.err = err
-	                                } else {
-	                                        m.urlInput.SetValue(config.URL)
-	                                        m.method = config.Method
-	                                        m.headers = config.Headers
-	                                        m.body = config.Body
-	                                        m.showCurlInput = false
-	                                        m.err = nil
-	                                }
-	                                return m, nil
-	                        }
-	                        m.curlInput, cmd = m.curlInput.Update(msg)
-	                        return m, cmd
-	                }
+		case tea.KeyMsg:
+			if m.ShowCurlInput {
+				switch msg.String() {
+				case "esc":
+					m.ShowCurlInput = false
+					m.Err = nil
+					return m, nil
+				case "enter":
+					config, err := ParseCurl(m.CurlInput.Value())
+					if err != nil {
+						m.Err = err
+					} else {
+						m.URLInput.SetValue(config.URL)
+						m.Method = config.Method
+						m.Headers = config.Headers
+						m.Body = config.Body
+						m.ShowCurlInput = false
+						m.Err = nil
+					}
+					return m, nil
+				}
+				m.CurlInput, cmd = m.CurlInput.Update(msg)
+				return m, cmd
+			}
 
-	                switch msg.String() {
-	                case "ctrl+c", "esc":
-	                        m.quitting = true
-	                        return m, tea.Quit
-	                case "tab":
-	                        m.activeTab = (m.activeTab + 1) % 3
-	                case "shift+tab":
-	                        m.activeTab = (m.activeTab - 1 + 3) % 3
-	                case "ctrl+i":
-	                        m.showCurlInput = true
-	                        m.curlInput.Focus()
-	                        m.curlInput.SetValue("")
-	                        return m, nil
-	                case "ctrl+e":				editor := os.Getenv("EDITOR")
+			switch msg.String() {
+			case "ctrl+c", "esc":
+				m.Quitting = true
+				return m, tea.Quit
+			case "ctrl+s":
+				m.Sending = true
+				return m, tea.Quit
+			case "tab":
+				m.ActiveTab = (m.ActiveTab + 1) % 3
+			case "shift+tab":
+				m.ActiveTab = (m.ActiveTab - 1 + 3) % 3
+			case "ctrl+i":
+				m.ShowCurlInput = true
+				m.CurlInput.Focus()
+				m.CurlInput.SetValue("")
+				return m, nil
+			case "ctrl+e":
+				editor := os.Getenv("EDITOR")
 				if editor == "" {
 					editor = "vim"
 				}
 
 				f, err := os.CreateTemp("", "hsp-body-*.txt")
 				if err != nil {
-					m.err = err
+					m.Err = err
 					return m, nil
 				}
-				_, _ = f.WriteString(m.body)
+				_, _ = f.WriteString(m.Body)
 				f.Close()
 
 				c := exec.Command(editor, f.Name())
@@ -164,100 +168,101 @@ var (	titleStyle = lipgloss.NewStyle().
 			}
 		}
 
-		m.urlInput, cmd = m.urlInput.Update(msg)
+		m.URLInput, cmd = m.URLInput.Update(msg)
 		return m, cmd
 	}
-	func (m model) View() string {
-	if m.quitting {
-	        return ""
-	}
 
-	if m.showCurlInput {
-	        header := titleStyle.Render(" HSP - Import cURL ")
-	        input := m.curlInput.View()
-	        inputBox := lipgloss.NewStyle().
-	                Border(lipgloss.RoundedBorder()).
-	                BorderForeground(lipgloss.Color("#874BFD")).
-	                Padding(0, 1).
-	                Width(62).
-	                Render(input)
+	func (m TUIModel) View() string {
+		if m.Quitting {
+			return ""
+		}
 
-	        help := lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render("\n enter: import • esc: cancel ")
+		if m.ShowCurlInput {
+			header := titleStyle.Render(" HSP - Import cURL ")
+			input := m.CurlInput.View()
+			inputBox := lipgloss.NewStyle().
+				Border(lipgloss.RoundedBorder()).
+				BorderForeground(lipgloss.Color("#874BFD")).
+				Padding(0, 1).
+				Width(62).
+				Render(input)
 
-	        content := lipgloss.JoinVertical(lipgloss.Left, header, "Paste your cURL command:", inputBox, help)
+			help := lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render("\n enter: import • esc: cancel ")
 
-	        if m.err != nil {
-	                errorMsg := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Render("\nError: " + m.err.Error())
-	                content = lipgloss.JoinVertical(lipgloss.Left, content, errorMsg)
-	        }
+			content := lipgloss.JoinVertical(lipgloss.Left, header, "Paste your cURL command:", inputBox, help)
 
-	        return lipgloss.Place(80, 20, lipgloss.Center, lipgloss.Center,
-	                lipgloss.NewStyle().
-	                        Border(lipgloss.DoubleBorder()).
-	                        BorderForeground(lipgloss.Color("#7D56F4")).
-	                        Padding(1).
-	                        Render(content))
-	}
+			if m.Err != nil {
+				errorMsg := lipgloss.NewStyle().Foreground(lipgloss.Color("#FF0000")).Render("\nError: " + m.Err.Error())
+				content = lipgloss.JoinVertical(lipgloss.Left, content, errorMsg)
+			}
 
-	header := titleStyle.Render(" HSP - HTTP Superpowers ")
+			return lipgloss.Place(80, 20, lipgloss.Center, lipgloss.Center,
+				lipgloss.NewStyle().
+					Border(lipgloss.DoubleBorder()).
+					BorderForeground(lipgloss.Color("#7D56F4")).
+					Padding(1).
+					Render(content))
+		}
 
-	method := methodStyle.Render(" " + m.method + " ")
-	url := m.urlInput.View()
+		header := titleStyle.Render(" HSP - HTTP Superpowers ")
 
-	// Create a styled box for the URL input to make it look like a field
-	urlBox := lipgloss.NewStyle().
-	        Border(lipgloss.RoundedBorder()).
-	        BorderForeground(lipgloss.Color("#874BFD")).
-	        Padding(0, 1).
-	        Width(62).
-	        Render(url)
+		method := methodStyle.Render(" " + m.Method + " ")
+		url := m.URLInput.View()
 
-	headerSection := lipgloss.JoinHorizontal(lipgloss.Center, method, " ", urlBox)
+		// Create a styled box for the URL input to make it look like a field
+		urlBox := lipgloss.NewStyle().
+			Border(lipgloss.RoundedBorder()).
+			BorderForeground(lipgloss.Color("#874BFD")).
+			Padding(0, 1).
+			Width(62).
+			Render(url)
 
-	// Tabs
-	tabs := []string{"Headers", "Query Params", "Body"}
-	var renderedTabs []string
+		headerSection := lipgloss.JoinHorizontal(lipgloss.Center, method, " ", urlBox)
 
-	for i, t := range tabs {
-	        var style lipgloss.Style
-	        isFirst, isLast, isActive := i == 0, i == len(tabs)-1, i == m.activeTab
+		// Tabs
+		tabs := []string{"Headers", "Query Params", "Body"}
+		var renderedTabs []string
 
-	        if isActive {
-	                style = activeTabStyle.Copy()
-	        } else {
-	                style = tabStyle.Copy()
-	        }
+		for i, t := range tabs {
+			var style lipgloss.Style
+			isFirst, isLast, isActive := i == 0, i == len(tabs)-1, i == m.ActiveTab
 
-	        // Adjust borders for seamless look
-	        if isFirst && !isActive {
-	                style = style.Border(lipgloss.NormalBorder(), true, true, false, true)
-	        } else if isLast && !isActive {
-	                style = style.Border(lipgloss.NormalBorder(), true, true, false, true)
-	        }
+			if isActive {
+				style = activeTabStyle.Copy()
+			} else {
+				style = tabStyle.Copy()
+			}
 
-	        renderedTabs = append(renderedTabs, style.Render(t))
-	}
+			// Adjust borders for seamless look
+			if isFirst && !isActive {
+				style = style.Border(lipgloss.NormalBorder(), true, true, false, true)
+			} else if isLast && !isActive {
+				style = style.Border(lipgloss.NormalBorder(), true, true, false, true)
+			}
 
-	row := lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
+			renderedTabs = append(renderedTabs, style.Render(t))
+		}
 
-	// Content
-	var content string
-	switch m.activeTab {
-	case 0:
-	        content = "Headers Section (Placeholder)\n\nKey: Value pairs will go here."
-	case 1:
-	        content = "Params Section (Placeholder)\n\nQuery parameters will go here."
-	case 2:
-	        if m.body == "" {
-	                content = "Body is empty.\n\nPress ctrl+e to edit in your $EDITOR."
-	        } else {
-	                content = m.body
-	        }
-	}
+		row := lipgloss.JoinHorizontal(lipgloss.Top, renderedTabs...)
 
-	tabContent := tabWindowStyle.Render(content)
+		// Content
+		var content string
+		switch m.ActiveTab {
+		case 0:
+			content = "Headers Section (Placeholder)\n\nKey: Value pairs will go here."
+		case 1:
+			content = "Params Section (Placeholder)\n\nQuery parameters will go here."
+		case 2:
+			if m.Body == "" {
+				content = "Body is empty.\n\nPress ctrl+e to edit in your $EDITOR."
+			} else {
+				content = m.Body
+			}
+		}
 
-	help := lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render("\n tab: next tab • shift+tab: prev tab • ctrl+e: edit body • ctrl+i: import curl • ctrl+c: quit ")
-	return lipgloss.JoinVertical(lipgloss.Left, header, headerSection, "", row, tabContent, help) + "\n"
+		tabContent := tabWindowStyle.Render(content)
+
+		help := lipgloss.NewStyle().Foreground(lipgloss.Color("#626262")).Render("\n tab: next tab • shift+tab: prev tab • ctrl+e: edit body • ctrl+i: import curl • ctrl+s: send • ctrl+c: quit ")
+		return lipgloss.JoinVertical(lipgloss.Left, header, headerSection, "", row, tabContent, help) + "\n"
 	}
 
