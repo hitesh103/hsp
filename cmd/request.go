@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fatih/color"
 	"github.com/hokaccha/go-prettyjson"
 	"github.com/spf13/cobra"
 )
-
 type RequestBuilder struct {
 	URL          string
 	Method       string
@@ -69,35 +69,33 @@ func NewRequestBuilder() *RequestBuilder {
 }
 
 func (rb *RequestBuilder) InteractiveFlow() {
-	reader := bufio.NewReader(os.Stdin)
-
 	rb.LoadLastRequestAtStart()
 
-	// Step 1: Get URL
-	rb.PromptURL(reader)
+	m := initialModel()
+	if rb.URL != "" {
+		m.URLInput.SetValue(rb.URL)
+	}
+	m.Method = rb.Method
+	if len(rb.Headers) > 0 {
+		m.Headers = rb.Headers
+	}
+	m.Body = rb.Body
 
-	// Step 2: Get Method
-	rb.PromptMethod(reader)
-
-	// Step 3: Add Headers
-	rb.PromptHeaders(reader)
-
-	// Step 4: Add Query Params
-	rb.PromptQueryParams(reader)
-
-	// Step 5: Handle Body for POST/PUT/PATCH
-	if rb.Method == "POST" || rb.Method == "PUT" || rb.Method == "PATCH" {
-		rb.PromptBody(reader)
+	p := tea.NewProgram(m)
+	finalM, err := p.Run()
+	if err != nil {
+		fmt.Printf("Alas, there's been an error: %v", err)
+		os.Exit(1)
 	}
 
-	// Step 6: Pretty print preference
-	rb.PromptPrettyPrint(reader)
+	finalModel := finalM.(TUIModel)
 
-	// Step 7: Show preview
-	rb.ShowPreview()
+	if finalModel.Sending {
+		rb.URL = finalModel.URLInput.Value()
+		rb.Method = finalModel.Method
+		rb.Headers = finalModel.Headers
+		rb.Body = finalModel.Body
 
-	// Step 8: Confirm and send
-	if rb.ConfirmSend(reader) {
 		rb.SendRequest()
 
 		if err := SaveLastRequest(rb); err != nil {
@@ -107,7 +105,6 @@ func (rb *RequestBuilder) InteractiveFlow() {
 		fmt.Println("\n❌ Request cancelled")
 	}
 }
-
 func (rb *RequestBuilder) PromptURL(reader *bufio.Reader) {
 	for {
 		var input string
